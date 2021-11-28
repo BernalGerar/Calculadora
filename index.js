@@ -30,7 +30,7 @@ function Operate(a, type, b) {
   const calculate = function(arr) {
     var elem1;
     var elem2;
-    var elem2;
+    var elem3;
     for(var i = 0; i < arr['f'].length; i++) {
       if(arr['f'][i].value == 'x' || arr['f'][i].value == '/') {
         elem1 = arr['f'].splice(i, 1);
