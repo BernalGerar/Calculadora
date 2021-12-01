@@ -6,8 +6,10 @@ function Operate(a, type, b) {
   }
   
   const noSpaces = function(str) {
+    var regExp = /([0-9\+\x\-\/\.\(\)]*)/g
+    var arr = str.match(regExp);
     var newStr = '';
-    for(var i = 0; i < str.length; i++) str[i] != ' ' ? newStr += str[i] : '';
+    for(var i = 0; i < arr.length; i++) arr[i] != "" ? newStr += arr[i] : "";
     return newStr;
   }
 
@@ -21,9 +23,10 @@ function Operate(a, type, b) {
     return newStr;
   }
 
-  const detect = function(elem, i) {
-    if(!isNaN(parseFloat(elem))) return {type:'Number', value: parseFloat(elem)};
+  const detect = function(elem) {
+    if(!isNaN(parseFloat(elem))) return {type:'Number', value: parseFloat(elem)}
     else if(elem == "+" || elem == "-" || elem == "/" || elem == "x") return {type:'Operator', value: elem};
+    
   }
 
   const calculate = function(arr) {
@@ -55,14 +58,14 @@ function Operate(a, type, b) {
         if(arr[i - 1].value == 'x' || arr[i - 1].value == '/' || arr[i - 1].value == '+') {
           arr.splice(i, 1);
           arr[i].value = parseFloat('-' + arr[i].value.toString());
-        }else {
+        }else if(arr[i - 1].type == 'Number') {
           arr.splice(i, 0, {type:'Operator', value: '+'});
           arr.splice(i + 1, 1);
           arr[i + 1].value = parseFloat('-' + arr[i + 1].value.toString());
         }
       }
     }
-
+    
     // este bucle se encarga de hacer las operaciones tanto de multiplicacion y division
     // siguiendo el ejemplo anterior 
     /*
@@ -76,6 +79,7 @@ function Operate(a, type, b) {
        {type:'Number', value: '-2'}
      ];
     */
+   
     for(var i = 0; i < arr.length; i++) {
       if(arr[i].value == 'x' || arr[i].value == '/') {
         elem1 = arr.splice(i, 1);
@@ -94,15 +98,39 @@ function Operate(a, type, b) {
        despues:
        arr['f'] = [{type:'Number', value: -3}];
     */
+   
     while(arr.length != 1) {
       elem1 = arr.splice(0, 1);
       elem2 = arr.splice(0, 1);
       elem3 = arr.splice(0, 1);
       arr.splice(0, 0, Operate(elem1[0], elem2[0], elem3[0]));
     }
-
+    
     return arr[0];
-  }
+  };
+
+  const operaP = function(str, regExp) {
+    var newStr = '';
+    var resp = regExp.exec(str);
+
+    if(resp == null) return str
+    else {
+      var elem1 = '';
+      for(var i = 0; i < resp[0].length; i++) if(resp[0][i] != '(' && resp[0][i] != ')') {elem1 += resp[0][i]}
+      var arr = spacesOnBothSices(noSpaces(elem1), ['-', '+', '/', 'x']).split(" ");
+      
+      for(var i = 0; i < arr.length; i++) arr[i] = detect(arr[i]);
+      for(var i = 0; i < arr.length; i++) arr[i] == undefined ? arr.splice(i, 1) : '';
+      
+      var resul = calculate(arr);
+      for(var i  = 0, o = 0; i < str.length; i++) {
+        if(i == resp.index) {newStr += resul.value.toString(); o++;}
+        if(i < resp.index) {newStr += resp.input[i]; o++;}
+        if(i > (resp.index + resp[0].length) - 1) {newStr += resp.input[i]; o++;}
+      }
+      return operaP(newStr, /(\([0-9\+\x\-\/\.\s]*\))/g)
+    }
+  };
 
   var text =  document.getElementById('text');
   text.onkeyup = function(e) {    
@@ -113,10 +141,12 @@ function Operate(a, type, b) {
   button.onclick = function() {
     var arr;
     var p = '';
-    
+    var regExpForP = /(\([0-9\+\x\-\/\.\s]*\))/g;
+
     for(var i = 0; i < text.childNodes.length; i++) p += text.childNodes[i].innerHTML;
+    var newP = operaP(noSpaces(p), regExpForP);
     
-    arr = spacesOnBothSices(noSpaces(p), ['-', '+', '/', 'x']).split(" ");
+    arr = spacesOnBothSices(noSpaces(newP), ['-', '+', '/', 'x']).split(" ");
     for(var i = 0; i < arr.length; i++) arr[i] = detect(arr[i]);
     for(var i = 0; i < arr.length; i++) arr[i] == undefined ? arr.splice(i, 1) : '';
     
