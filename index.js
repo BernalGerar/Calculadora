@@ -1,160 +1,126 @@
 function Operate(a, type, b) {
-    if(type.value == '+')      return {type: 'Number', value: a.value + b.value}
-    else if(type.value == 'x') return {type: 'Number', value: a.value * b.value}
-    else if(type.value == '/') return {type: 'Number', value: a.value / b.value}
-    else return 'error:'; 
+  if(type.value == '+')      return {type: 'Number', value: a.value + b.value}
+  else if(type.value == 'x') return {type: 'Number', value: a.value * b.value}
+  else if(type.value == '/') return {type: 'Number', value: a.value / b.value}
+  else if(type.value == '-') return {type: 'Number', value: a.value - b.value}
+  else return 'error:'; 
+}
+
+const spacesOnBothSices = function(str, arr) {
+
+  var newArr = Array.from(str);
+  var newStr = '';
+  for(var i = 0; i < newArr.length; i++) {
+    for(var f = 0; f < arr.length; f++) { if(newArr[i] == arr[f])  newArr[i] = ' ' + newArr[i] + ' '; }
   }
+
+  for(var i = 0; i < newArr.length; i++) newStr += newArr[i];
   
-  const noSpaces = function(str) {
-    var regExp = /([0-9\+\x\-\/\.\(\)]*)/g
-    var arr = str.match(regExp);
-    var newStr = '';
-    for(var i = 0; i < arr.length; i++) arr[i] != "" ? newStr += arr[i] : "";
-    return newStr;
+  return newStr;
+}
+
+const detect = function(elem) {
+  if(!isNaN(parseFloat(elem))) return {type: 'Number', value: parseFloat(elem)}
+  else if(elem == "+" || elem == "-" || elem == "/" || elem == "x" || elem == '('|| elem == ')'|| elem == ',') return {type: 'Token', value: elem}
+  else if(elem == 'log' || elem == 'pow' || elem == 'root') return {type: 'Function', value: elem}
+  else return {type: 'NoDefined', value: undefined};
+}
+
+const noSpaces = function(str) {
+  var newStr = '';
+  for(var i = 0; i < str.length; i++) if(!/\s/.test(str[i])) {newStr += str[i]}
+  return newStr;
+};
+
+const lexer = function(text) {
+  var __text = spacesOnBothSices(noSpaces(text), ['+', '-', 'x', '/', '(', ')', ',']);
+  var arr = __text.split(" ");
+  for(var i = 0; i < arr.length; i++) arr[i] = detect(arr[i]);
+  for(var i = 0; i < arr.length; i++) arr[i].type  == "NoDefined" ? arr.splice(i, 1) : '';
+  return arr;
+}
+
+const parser = function(tokens) {
+
+  var re2 = /(log|pow|root)\(([0-9\s]+)\s*\,\s*([0-9\s]+)\)/;
+  var tree = [];
+  while(tokens.length > 0) {
+    var elem = tokens.splice(0, 1)[0];
+    if(elem.type == 'Function') {
+      var elem1 = tokens.splice(0, 1)[0];
+      var elem2 = tokens.splice(0, 1)[0];
+      var elem3 = tokens.splice(0, 1)[0];
+      var elem4 = tokens.splice(0, 1)[0];
+      var elem5 = tokens.splice(0, 1)[0];
+      var expr = elem.value + elem1.value + elem2.value + elem3.value + elem4.value + elem5.value;
+      if(re2.test(expr)) {
+        tree.push({type: 'Function', name: elem.value, arguments: [
+          {type: 'Number', value: elem2.value}, 
+          {type: 'Number', value: elem4.value}
+        ]})
+      }
+    }else if(elem.type == 'Token') tree.push({type: 'Token', value:elem. value})
+     else if(elem.type == 'Number') tree.push({type: 'Number', value:elem. value})
   }
+  return tree;
+}
 
-  const spacesOnBothSices = function(str, arr) {
-    var newArr = Array.from(str);
-    var newStr = '';
-    for(var i = 0; i < newArr.length; i++) {
-      for(var f = 0; f < arr.length; f++) { if(newArr[i] == arr[f])  newArr[i] = ' ' + newArr[i] + ' '; }
-    }
-    for(var i = 0; i < newArr.length; i++) newStr += newArr[i];
-    return newStr;
-  }
+const generateResult = function(tree) {
 
-  const detect = function(elem) {
-    if(!isNaN(parseFloat(elem))) return {type:'Number', value: parseFloat(elem)}
-    else if(elem == "+" || elem == "-" || elem == "/" || elem == "x") return {type:'Operator', value: elem};
-    
-  }
-
-  const calculate = function(arr) {
-    var elem1;
-    var elem2;
-    var elem3;
-    
-    // convierte de lo que seria una expresion -1+-1x2
-    // arr['f'] = [{type:'Operator', value: '-'}, {type:'Operator', value: 1}, ...]
-    // arr['f'] = [{type:'Number', value: -1}, {type:'Operator', value: '+'}, ...]
-    if(arr[0].value == '-') {
-      elem1 = arr.splice(0, 1);
-      arr[0].value = parseFloat('-' + arr[0].value.toString());
-    };
-
-    // este bucle hace los mismo de antes pero con todas las expresiones: siguiendo el ejemplo
-    /* arr['f'] = [{type:'Number', value: -1}, {type:'Operator', value: '+'},
-         {type:'Operator', value: '-'}, {type:'Number', value: '1'}, {type:'Operator', value: 'x'},
-         {type:'Number', value: '2'}
-        ];
-       se convierte a:
-       arr['f'] = [{type:'Number', value: -1}, {type:'Operator', value: '+'},
-         {type:'Number', value: '-1'}, {type:'Operator', value: 'x'},
-         {type:'Number', value: '2'}
-       ];
-    */
-    for(var i = 0 ; i < arr.length; i++) {
-      if(arr[i].value == '-') {
-        if(arr[i - 1].value == 'x' || arr[i - 1].value == '/' || arr[i - 1].value == '+') {
-          arr.splice(i, 1);
-          arr[i].value = parseFloat('-' + arr[i].value.toString());
-        }else if(arr[i - 1].type == 'Number') {
-          arr.splice(i, 0, {type:'Operator', value: '+'});
-          arr.splice(i + 1, 1);
-          arr[i + 1].value = parseFloat('-' + arr[i + 1].value.toString());
+  const solveFunctions = function(tree) {
+    for(var i = 0; i < tree.length; i++) {
+      if(tree[i].type == 'Function') {
+        var result;
+        switch(tree[i].name) {
+          case 'log':
+            var elem = tree.splice(i, 1)[0];
+            result = Math.log(elem.arguments[1].value) / Math.log(elem.arguments[0].value);
+          break;
+          case 'root':
+            var elem = tree.splice(i, 1)[0];
+            result = Math.pow(elem.arguments[1].value, 1 / elem.arguments[0].value)
+          break;
+          case 'pow':
+            var elem = tree.splice(i, 1)[0];
+            result = Math.pow(elem.arguments[0].value, elem.arguments[1].value)
+          break;
+          default:
+          break;
         }
+        tree.splice(i, 0, {type: 'Number', value: result});
       }
     }
-    
-    // este bucle se encarga de hacer las operaciones tanto de multiplicacion y division
-    // siguiendo el ejemplo anterior 
-    /*
-     ahora : 
-     arr['f'] = [{type:'Number', value: -1}, {type:'Operator', value: '+'},
-       {type:'Number', value: '-1'}, {type:'Operator', value: 'x'},
-       {type:'Number', value: '2'}
-     ];
-     despues de que se ejecuta el bucle 
-     arr['f'] = [{type:'Number', value: -1}, {type:'Operator', value: '+'},
-       {type:'Number', value: '-2'}
-     ];
-    */
-   
-    for(var i = 0; i < arr.length; i++) {
-      if(arr[i].value == 'x' || arr[i].value == '/') {
-        elem1 = arr.splice(i, 1);
-        elem2 = arr.splice(i, 1);
-        arr.splice(i - 1, 1, Operate(arr[i - 1], elem1[0], elem2[0]));
+    return tree;
+  };
+
+  const priority = function(tree) {
+    for(var i = 0; i < tree.length; i++) {
+      if(tree[i].value == 'x' || tree[i].value == '/') {
+        elem1 = tree.splice(i, 1);
+        elem2 = tree.splice(i, 1);
+        tree.splice(i - 1, 1, Operate(tree[i - 1], elem1[0], elem2[0]));
         i--;
       }
     }
-    
-    // este blucle hace la suma
-    // ahora:
-    /*
-       arr['f'] = [{type:'Number', value: -1}, {type:'Operator', value: '+'},
-         {type:'Number', value: '-2'}
-       ];
-       despues:
-       arr['f'] = [{type:'Number', value: -3}];
-    */
-   
-    while(arr.length != 1) {
-      elem1 = arr.splice(0, 1);
-      elem2 = arr.splice(0, 1);
-      elem3 = arr.splice(0, 1);
-      arr.splice(0, 0, Operate(elem1[0], elem2[0], elem3[0]));
-    }
-    
-    return arr[0];
+    return tree;
   };
 
-  const operaP = function(str, regExp) {
-    var newStr = '';
-    var resp = regExp.exec(str);
-
-    if(resp == null) return str
-    else {
-      var elem1 = '';
-      for(var i = 0; i < resp[0].length; i++) if(resp[0][i] != '(' && resp[0][i] != ')') {elem1 += resp[0][i]}
-      var arr = spacesOnBothSices(noSpaces(elem1), ['-', '+', '/', 'x']).split(" ");
-      
-      for(var i = 0; i < arr.length; i++) arr[i] = detect(arr[i]);
-      for(var i = 0; i < arr.length; i++) arr[i] == undefined ? arr.splice(i, 1) : '';
-      
-      var resul = calculate(arr);
-      for(var i  = 0, o = 0; i < str.length; i++) {
-        if(i == resp.index) {newStr += resul.value.toString(); o++;}
-        if(i < resp.index) {newStr += resp.input[i]; o++;}
-        if(i > (resp.index + resp[0].length) - 1) {newStr += resp.input[i]; o++;}
-      }
-      return operaP(newStr, /(\([0-9\+\x\-\/\.\s]*\))/g)
+  const noPriority = function(tree) {
+    var elem1;
+    var elem2;
+    var elem3;
+    while(tree.length != 1) {
+      elem1 = tree.splice(0, 1);
+      elem2 = tree.splice(0, 1);
+      elem3 = tree.splice(0, 1);
+      tree.splice(0, 0, Operate(elem1[0], elem2[0], elem3[0]));
     }
-  };
-
-  var text =  document.getElementById('text');
-  text.onkeyup = function(e) {    
-    if(text.innerHTML == '<br>' || text.innerHTML == '') text.innerHTML = '<div><br></div>';
+    return tree[0].value;
   }
 
-  var button = document.getElementById('button');
-  button.onclick = function() {
-    var arr;
-    var p = '';
-    var regExpForP = /(\([0-9\+\x\-\/\.\s]*\))/g;
+  return noPriority(priority(solveFunctions(tree)));
+}
 
-    for(var i = 0; i < text.childNodes.length; i++) p += text.childNodes[i].innerHTML;
-    var newP = operaP(noSpaces(p), regExpForP);
-    
-    arr = spacesOnBothSices(noSpaces(newP), ['-', '+', '/', 'x']).split(" ");
-    for(var i = 0; i < arr.length; i++) arr[i] = detect(arr[i]);
-    for(var i = 0; i < arr.length; i++) arr[i] == undefined ? arr.splice(i, 1) : '';
-    
-    var resul = calculate(arr);
-    text.innerHTML = '<div>' + resul.value + '</div>';
-  }
-  
-  var clear = document.getElementById('clear');
-  clear.onclick = function() {
-    text.innerHTML = '<div><br></div>';
-  }
+const compiler = function(code) {
+  return generateResult(parser(lexer(code)))
+}
